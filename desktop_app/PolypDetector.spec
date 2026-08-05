@@ -1,7 +1,12 @@
 # -*- mode: python ; coding: utf-8 -*-
+from pathlib import Path
+
 from PyInstaller.utils.hooks import collect_all
 
-datas = [('models\\best.pt', 'models')]
+SPEC_DIR = Path(SPECPATH).resolve()
+PROJECT_ROOT = SPEC_DIR.parent
+
+datas = [(str(PROJECT_ROOT / 'models' / 'best.pt'), 'models')]
 binaries = []
 hiddenimports = []
 tmp_ret = collect_all('ultralytics')
@@ -9,8 +14,8 @@ datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
 
 
 a = Analysis(
-    ['desktop_app\\desktop_app.py'],
-    pathex=['.'],
+    [str(SPEC_DIR / 'desktop_app.py')],
+    pathex=[str(PROJECT_ROOT)],
     binaries=binaries,
     datas=datas,
     hiddenimports=hiddenimports,
