@@ -18,15 +18,15 @@ ROOT_DIR = Path(__file__).resolve().parent.parent
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
-from shared.detector import default_device, find_model, load_model as create_model, predict
+from shared.detector import DEFAULT_MODEL, default_device, find_models, load_model as create_model, predict
 
 st.set_page_config(page_title="YOLO26 Polyp Detector", layout="wide")
 
 APP_DIR = Path(__file__).resolve().parent
 try:
-    MODEL_PATH = find_model(APP_DIR, ROOT_DIR)
+    MODEL_PATHS = find_models(APP_DIR, ROOT_DIR)
 except FileNotFoundError:
-    MODEL_PATH = ROOT_DIR / "models" / "best.pt"
+    MODEL_PATHS = {}
 RTC_CONFIGURATION = {"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]}
 
 
@@ -120,20 +120,23 @@ def process_video(model: YOLO, uploaded_file, confidence: float, progress) -> tu
 st.title("YOLO26 Polyp Detector")
 st.caption("Detect polyps in an image, an uploaded video, or a live webcam stream.")
 
-if not MODEL_PATH.is_file():
-    st.error("best.pt was not found. Place best.pt in the same folder as web_app.py.")
-    st.stop()
-
-try:
-    model = load_model(str(MODEL_PATH))
-except Exception as error:
-    st.error(f"Could not load best.pt: {error}")
+if not MODEL_PATHS:
+    st.error("No model weights were found in the models directory.")
     st.stop()
 
 with st.sidebar:
     st.header("Detection settings")
+    available_models = list(MODEL_PATHS)
+    default_index = available_models.index(DEFAULT_MODEL) if DEFAULT_MODEL in available_models else 0
+    model_name = st.selectbox("Model", available_models, index=default_index)
     confidence = st.slider("Confidence threshold", 0.05, 0.95, 0.25, 0.05)
     source_type = st.radio("Input source", ["Upload image", "Upload video", "Webcam"])
+
+try:
+    model = load_model(str(MODEL_PATHS[model_name]))
+except Exception as error:
+    st.error(f"Could not load {MODEL_PATHS[model_name].name}: {error}")
+    st.stop()
 
 source = None
 if source_type == "Upload image":

@@ -6,7 +6,7 @@ from PyInstaller.utils.hooks import collect_all
 SPEC_DIR = Path(SPECPATH).resolve()
 PROJECT_ROOT = SPEC_DIR.parent
 
-datas = [(str(PROJECT_ROOT / 'models' / 'best.pt'), 'models')]
+datas = [(str(PROJECT_ROOT / 'models' / name), 'models') for name in ('best.pt', 'best_v2.pt')]
 binaries = []
 hiddenimports = []
 tmp_ret = collect_all('ultralytics')

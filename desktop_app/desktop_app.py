@@ -16,7 +16,7 @@ ROOT_DIR = Path(__file__).resolve().parent.parent
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
-from shared.detector import default_device, find_model, load_model, predict
+from shared.detector import DEFAULT_MODEL, default_device, find_models, load_model, predict
 
 
 APP_TITLE = "YOLO26 Polyp Detector"
@@ -33,6 +33,7 @@ class PolypDetectorApp:
 
         self.device = default_device()
         self.model: YOLO | None = None
+        self.model_paths: dict[str, Path] = {}
         self.source_bgr = None
         self.result_bgr = None
         self.photo = None
@@ -46,7 +47,8 @@ class PolypDetectorApp:
         self.video_frame_total = 0
 
         self.confidence = tk.DoubleVar(value=0.25)
-        self.status = tk.StringVar(value="Loading best.pt...")
+        self.model_choice = tk.StringVar(value=DEFAULT_MODEL)
+        self.status = tk.StringVar(value="Loading models...")
         self.summary = tk.StringVar(value="No image selected")
 
         self._build_ui()
@@ -68,7 +70,12 @@ class PolypDetectorApp:
         self.save_button = ttk.Button(toolbar, text="Save result", command=self.save_result, state=tk.DISABLED)
         self.save_button.pack(side=tk.LEFT, padx=6)
 
-        ttk.Label(toolbar, text="Confidence").pack(side=tk.LEFT, padx=(22, 4))
+        ttk.Label(toolbar, text="Model").pack(side=tk.LEFT, padx=(22, 4))
+        self.model_picker = ttk.Combobox(toolbar, textvariable=self.model_choice, state="disabled", width=36)
+        self.model_picker.pack(side=tk.LEFT, padx=4)
+        self.model_picker.bind("<<ComboboxSelected>>", self.change_model)
+
+        ttk.Label(toolbar, text="Confidence").pack(side=tk.LEFT, padx=(12, 4))
         ttk.Scale(toolbar, from_=0.05, to=0.95, variable=self.confidence, length=180).pack(side=tk.LEFT)
         ttk.Label(toolbar, textvariable=self.confidence, width=5).pack(side=tk.LEFT, padx=4)
 
@@ -86,7 +93,10 @@ class PolypDetectorApp:
             bundle_dir = getattr(sys, "_MEIPASS", None)
             if bundle_dir:
                 search_dirs.insert(0, Path(bundle_dir))
-            model_path = find_model(*search_dirs)
+            self.model_paths = find_models(*search_dirs)
+            if self.model_choice.get() not in self.model_paths:
+                self.model_choice.set(next(iter(self.model_paths)))
+            model_path = self.model_paths[self.model_choice.get()]
             self.model = load_model(model_path)
             self.root.after(0, lambda: self._model_ready(model_path))
         except Exception as error:
@@ -96,7 +106,26 @@ class PolypDetectorApp:
         self.open_button.config(state=tk.NORMAL)
         self.video_button.config(state=tk.NORMAL)
         self.camera_button.config(state=tk.NORMAL)
+        self.model_picker.config(state="readonly", values=list(self.model_paths))
         self.status.set(f"Ready | Model: {model_path.name} | Device: {self.device}")
+
+    def change_model(self, _event=None) -> None:
+        if self.camera_running or self.video_running:
+            messagebox.showinfo(APP_TITLE, "Stop the current video or webcam before changing models.")
+            return
+        model_path = self.model_paths.get(self.model_choice.get())
+        if model_path is None:
+            return
+        self._set_controls(False)
+        self.status.set(f"Loading {model_path.name}...")
+        threading.Thread(target=self._load_selected_model, args=(model_path,), daemon=True).start()
+
+    def _load_selected_model(self, model_path: Path) -> None:
+        try:
+            self.model = load_model(model_path)
+            self.root.after(0, lambda: self._model_ready(model_path))
+        except Exception as error:
+            self.root.after(0, lambda: self._show_error("Model loading failed", error))
 
     def open_image(self) -> None:
         self.stop_capture()
@@ -200,6 +229,7 @@ class PolypDetectorApp:
         self.video_button.config(state=tk.DISABLED)
         self.detect_button.config(state=tk.DISABLED)
         self.save_button.config(state=tk.DISABLED)
+        self.model_picker.config(state="disabled")
         self.status.set("Live webcam detection running.")
         self._next_capture_frame()
 
@@ -279,6 +309,7 @@ class PolypDetectorApp:
                 self.open_button.config(state=tk.NORMAL)
                 self.video_button.config(state=tk.NORMAL)
                 self.camera_button.config(state=tk.NORMAL)
+                self.model_picker.config(state="readonly")
                 self.save_button.config(state=tk.NORMAL if self.result_bgr is not None else tk.DISABLED)
         self.status.set("Webcam stopped.")
 
@@ -332,6 +363,7 @@ class PolypDetectorApp:
         self.video_button.config(state=state)
         self.camera_button.config(state=state)
         self.detect_button.config(state=state if self.source_bgr is not None else tk.DISABLED)
+        self.model_picker.config(state="readonly" if enabled else "disabled")
 
     def _show_error(self, title: str, error: Exception) -> None:
         self.camera_busy = False
