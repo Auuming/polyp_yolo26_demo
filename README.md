@@ -11,6 +11,11 @@ A personal learning project exploring the end-to-end process of training, evalua
 
 The included weights are YOLO26 Nano models using an inference image size of 640 pixels. Results depend on the training data, image quality, domain shift, and selected confidence threshold.
 
+## Dataset sources
+
+- Positive polyp examples: [EDF-YOLO for polyp detection](https://github.com/noushin94/EDF-YOLO-for-polyp-detection)
+- Negative examples: [PolypGen2021](https://www.kaggle.com/datasets/kokoroou/polypgen2021)
+
 ## Project structure
 
 ```text
