@@ -172,7 +172,8 @@ if source_type == "Webcam":
     st.info("Click START and allow camera access. Click STOP to end live detection.")
     if not TURN_CONFIGURED:
         st.warning(
-            "No TURN relay is configured. Set TURN_URL, TURN_USERNAME, and TURN_CREDENTIAL"
+            "No TURN relay is configured. Set TURN_URL, TURN_USERNAME, and TURN_CREDENTIAL. "
+            "TURN configuration is not required when running locally."
         )
     webcam_confidence = float(confidence)
     webcam_device = default_device()
