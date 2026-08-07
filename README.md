@@ -14,7 +14,7 @@ The included weights are YOLO26 Nano models using an inference image size of 640
 ## Dataset sources
 
 - Positive polyp examples: [EDF-YOLO for polyp detection](https://github.com/noushin94/EDF-YOLO-for-polyp-detection)
-- Negative examples: [PolypGen2021](https://www.kaggle.com/datasets/kokoroou/polypgen2021)
+- Negative examples: [PolypGen2021](https://www.kaggle.com/datasets/kokoroou/polypgen2021) - only the first 400 images were used, split 60/20/20 into train/test/validation sets to match the positive dataset split.
 
 ## Project structure
 
