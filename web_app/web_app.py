@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from io import BytesIO
+import os
 from pathlib import Path
 import sys
 import tempfile
@@ -27,7 +28,32 @@ try:
     MODEL_PATHS = find_models(APP_DIR, ROOT_DIR)
 except FileNotFoundError:
     MODEL_PATHS = {}
-RTC_CONFIGURATION = {"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]}
+
+
+def build_rtc_configuration() -> dict:
+    ice_servers = [{"urls": ["stun:stun.l.google.com:19302"]}]
+    turn_urls = [
+        url.strip()
+        for url in os.getenv("TURN_URL", "").split(",")
+        if url.strip()
+    ]
+    turn_username = os.getenv("TURN_USERNAME")
+    turn_credential = os.getenv("TURN_CREDENTIAL")
+
+    if turn_urls and turn_username and turn_credential:
+        ice_servers.append(
+            {
+                "urls": turn_urls,
+                "username": turn_username,
+                "credential": turn_credential,
+            }
+        )
+
+    return {"iceServers": ice_servers}
+
+
+RTC_CONFIGURATION = build_rtc_configuration()
+TURN_CONFIGURED = len(RTC_CONFIGURATION["iceServers"]) > 1
 
 
 @st.cache_resource
@@ -144,6 +170,10 @@ if source_type == "Upload image":
 
 if source_type == "Webcam":
     st.info("Click START and allow camera access. Click STOP to end live detection.")
+    if not TURN_CONFIGURED:
+        st.warning(
+            "No TURN relay is configured. Set TURN_URL, TURN_USERNAME, and TURN_CREDENTIAL"
+        )
     webcam_confidence = float(confidence)
     webcam_device = default_device()
 
