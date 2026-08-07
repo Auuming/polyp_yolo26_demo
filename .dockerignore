@@ -1,0 +1,12 @@
+.git
+__pycache__/
+*.py[cod]
+*.ipynb
+desktop_app/
+notebooks/
+build/
+dist/
+runs/
+dist/
+runs/
+*.md
